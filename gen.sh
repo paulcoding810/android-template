@@ -4,9 +4,17 @@ set -euo pipefail
 # Change Android package name throughout a project (refactored & optimized)
 
 usage() {
-  echo "Usage: $0 <new.package.name> <NewProjectName>"
+  echo "Usage: $0 [--single] <new.package.name> <NewProjectName>"
+  echo "  --single    Clone from 'single' branch instead of 'main'"
   exit 1
 }
+
+# Parse optional --single flag
+BRANCH="main"
+if [ "$1" = "--single" ]; then
+  BRANCH="singular-module"
+  shift
+fi
 
 if [ "$#" -ne 2 ]; then
   usage
@@ -27,8 +35,8 @@ PROJECT_DIR="$(pwd)/$NEW_PROJECT_NAME"
 OLD_PKG_SLASH="${OLD_PKG//./\/}"
 NEW_PKG_SLASH="${NEW_PKG//./\/}"
 
-echo "Cloning template..."
-git clone --depth 1 "$GIT_URL" "$NEW_PROJECT_NAME"
+echo "Cloning template from branch '$BRANCH'..."
+git clone --depth 1 --branch "$BRANCH" "$GIT_URL" "$NEW_PROJECT_NAME"
 
 # Remove git metadata so the new project starts clean
 rm -rf "$PROJECT_DIR/.git"
