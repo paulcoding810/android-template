@@ -21,11 +21,3 @@ dependencyResolutionManagement {
 
 rootProject.name = "androidtemplate"
 include(":app")
-include(":core:network")
-include(":core:model")
-include(":core:designsystem")
-include(":core:domain")
-include(":core:data")
-include(":feature:home")
-include(":core:ui")
-include(":core:common")

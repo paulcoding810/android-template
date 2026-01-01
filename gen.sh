@@ -79,6 +79,12 @@ for f in "$PROJECT_DIR/README.md" "$PROJECT_DIR/gen.sh"; do
   fi
 done
 
+echo "🔧 Initializing git repository..."
+cd "$PROJECT_DIR"
+git init
+git add .
+git commit -m "Initial commit"
+
 echo
 echo "✅ Done! Package name changed from $OLD_PKG to $NEW_PKG."
 echo "Project created at: $PROJECT_DIR"

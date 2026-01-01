@@ -56,11 +56,20 @@ dependencies {
 
     implementation(libs.androidx.navigation.compose)
 
-    implementation(project(":core:network"))
-    implementation(project(":core:domain"))
-    implementation(project(":core:data"))
-    implementation(project(":core:ui"))
-    implementation(project(":feature:home"))
+    api(libs.ktor.core)
+    implementation(libs.ktor.android)
+    implementation(libs.ktor.client.logging)
+    implementation(libs.slf4j.simple)
+
+    implementation(libs.kotlinx.serialization.json)
+
+
+    implementation(libs.ktor.serialization)
+    implementation(libs.ktor.serialization.json)
+    implementation(libs.ktor.client.logging)
+    implementation(libs.ktor.client.auth)
+    implementation(libs.kotlinx.coroutine.core)
+    implementation(libs.kotlinx.serialization.json)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
