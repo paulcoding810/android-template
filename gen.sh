@@ -79,6 +79,11 @@ grep -rl "$OLD_PROJECT_NAME" "$PROJECT_DIR/app/src/main"  --include="*.kt"  --in
     sed -i "" "s/${OLD_PROJECT_NAME}/${NEW_PROJECT_NAME}/g" "$file"
 done
 
+echo "🔧 Initializing git repository..."
+cd "$PROJECT_DIR"
+git init
+git add .
+git commit -m "Initial commit"
 
 echo "🧹 Removing template files..."
 for f in "$PROJECT_DIR/README.md" "$PROJECT_DIR/gen.sh"; do
