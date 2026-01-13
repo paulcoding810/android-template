@@ -4,25 +4,28 @@ set -euo pipefail
 # Change Android package name throughout a project (refactored & optimized)
 
 usage() {
-  echo "Usage: $0 [--single] <new.package.name> <NewProjectName>"
+  echo "Usage: $0 <new.package.name> <NewProjectName> [--single]"
   echo "  --single    Clone from 'single' branch instead of 'main'"
   exit 1
 }
 
-# Parse optional --single flag
+# Parse arguments: packagename projectname [single]
 BRANCH="main"
-if [ "$1" = "--single" ]; then
-  BRANCH="singular-module"
-  shift
+if [ "$#" -lt 2 ]; then
+  usage
 fi
 
-if [ "$#" -ne 2 ]; then
+NEW_PKG="$1"
+NEW_PROJECT_NAME="$2"
+
+# Check for optional single flag
+if [ "$#" -eq 3 ] && [ "$3" = "--single" ]; then
+  BRANCH="singular-module"
+elif [ "$#" -gt 3 ]; then
   usage
 fi
 
 GIT_URL="https://github.com/paulcoding810/android-template"
-NEW_PKG="$1"
-NEW_PROJECT_NAME="$2"
 
 OLD_PKG="com.paulcoding.androidtemplate"
 OLD_PROJECT_NAME="AndroidTemplate"
