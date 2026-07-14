@@ -75,7 +75,11 @@ func extractTemplate(templateDir, outDir, newPkg, newProj string) {
 		content = strings.ReplaceAll(content, oldProjName, newProj)
 		content = strings.ReplaceAll(content, oldProjLower, newProjLower)
 
-		return os.WriteFile(outPath, []byte(content), 0644)
+		perm := fs.FileMode(0644)
+		if filepath.Base(outPath) == "gradlew" {
+			perm = 0755
+		}
+		return os.WriteFile(outPath, []byte(content), perm)
 	})
 }
 
