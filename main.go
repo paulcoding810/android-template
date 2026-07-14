@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-//go:embed template-main template-single
+//go:embed all:template-main all:template-single
 var templates embed.FS
 
 const (
