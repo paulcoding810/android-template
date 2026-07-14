@@ -2,7 +2,7 @@
 
 A single-binary CLI that generates a new Android project from an embedded template — no git clone, no network.
 
-```
+```bash
 gen-android <package.name> <ProjectName> [--single]
 ```
 

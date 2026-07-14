@@ -40,8 +40,6 @@ dependencies {
     implementation(libs.ktor.client.logging)
     implementation(libs.slf4j.simple)
 
-    implementation(libs.kotlinx.serialization.json)
-
     implementation(platform(libs.koin.bom))
     implementation(libs.koin.core)
 

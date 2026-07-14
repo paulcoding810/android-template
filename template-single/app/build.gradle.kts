@@ -49,8 +49,6 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
 
-    implementation(libs.kotlinx.serialization.json)
-
     implementation(platform(libs.koin.bom))
     implementation(libs.koin.compose)
 
@@ -60,9 +58,6 @@ dependencies {
     implementation(libs.ktor.android)
     implementation(libs.ktor.client.logging)
     implementation(libs.slf4j.simple)
-
-    implementation(libs.kotlinx.serialization.json)
-
 
     implementation(libs.ktor.serialization)
     implementation(libs.ktor.serialization.json)
