@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-//go:embed all:template-main all:template-single
+//go:embed all:template-main all:template-single all:template-kmm
 var templates embed.FS
 
 const (
@@ -21,17 +21,20 @@ const (
 
 func main() {
 	if len(os.Args) < 3 || os.Args[1] == "-h" || os.Args[1] == "--help" {
-		fmt.Fprintf(os.Stderr, "Usage: %s <package.name> <ProjectName> [--single]\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage: %s <package.name> <ProjectName> [--single|--kmm]\n", os.Args[0])
 		os.Exit(1)
 	}
 
 	newPkg := os.Args[1]
 	newProj := os.Args[2]
 	single := len(os.Args) == 4 && os.Args[3] == "--single"
+	kmm := len(os.Args) == 4 && os.Args[3] == "--kmm"
 
 	templateDir := "template-main"
 	if single {
 		templateDir = "template-single"
+	} else if kmm {
+		templateDir = "template-kmm"
 	}
 
 	dir := filepath.Join(".", newProj)
