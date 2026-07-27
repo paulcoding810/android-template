@@ -5,9 +5,18 @@ plugins {
     alias(libs.plugins.androidMultiplatformLibrary)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.room)
 }
 
 kotlin {
+    jvm {
+        compilerOptions {
+            jvmTarget = JvmTarget.JVM_11
+        }
+    }
+
     listOf(
         iosArm64(),
         iosSimulatorArm64()
@@ -36,13 +45,15 @@ kotlin {
            sourceSetTreeName = "test"
        }.configure {
            instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-       }
+        }
     }
     
     sourceSets {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.compose.uiTooling)
+            implementation(libs.koin.android)
+            implementation(libs.ktor.client.okhttp)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -53,6 +64,20 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
+            implementation(libs.koin.core)
+            implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.serialization.json)
+            implementation(libs.ktor.client.contentNegotiation)
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.serialization.json)
+            implementation(libs.room.runtime)
+            implementation(libs.sqlite.bundled)
+        }
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
+        }
+        jvmMain.dependencies {
+            implementation(libs.ktor.client.cio)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -62,4 +87,12 @@ kotlin {
 
 dependencies {
     androidRuntimeClasspath(libs.compose.uiTooling)
+    add("kspAndroid", libs.room.compiler)
+    add("kspIosArm64", libs.room.compiler)
+    add("kspIosSimulatorArm64", libs.room.compiler)
+    add("kspJvm", libs.room.compiler)
+}
+
+room {
+    schemaDirectory("$projectDir/schemas")
 }
