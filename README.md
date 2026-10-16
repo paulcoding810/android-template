@@ -13,6 +13,8 @@ gen-android com.example.myapp MyApp                          # multi-module temp
 gen-android com.example.myapp MyApp --single                 # single-module template
 gen-android com.example.myapp MyApp --kmm --team-id ABCDE12345
 gen-android com.example.myapp MyApp --output ~/projects --no-git
+gen-android com.example.myapp MyApp --icon logo.svg --icon-bg "#1E88E5"
+gen-android icon logo.svg --dir MyApp --bg "#1E88E5"   # update an existing project
 gen-android --list
 ```
 
@@ -27,9 +29,22 @@ The `gen-android` binary embeds the project templates at compile time via Go's `
 | `--output <dir>`   | Parent directory for the new project (default `.`)       |
 | `--team-id <id>`   | Apple team ID written to the iOS config (`--kmm` only)   |
 | `--no-git`         | Skip `git init` and the initial commit                   |
+| `--icon <file.svg>`| Generate the launcher icon from an SVG                   |
+| `--icon-bg <color>`| Launcher icon background, `#RGB` or `#RRGGBB` (default white) |
 | `--list`           | List available templates                                 |
 
 Flags may appear before or after the positional arguments. The package name must have at least two lowercase segments and no Kotlin keywords; the project name must be letters and digits only.
+
+**Launcher icon:**
+
+`--icon` (or the `icon` subcommand on an existing project) renders the SVG with a pure-Go rasterizer and writes:
+
+- `mipmap-*dpi/ic_launcher.png` and `ic_launcher_round.png` (legacy, 48dp)
+- `mipmap-*dpi/ic_launcher_foreground.png` (adaptive, 108dp), also used as the themed-icon (monochrome) layer
+- `values/ic_launcher_background.xml` with the background color
+- `iosApp/.../AppIcon.appiconset/app-icon-1024.png` (opaque) for KMM projects
+
+Existing `ic_launcher*` mipmaps and drawables are replaced. By default the artwork fills the adaptive safe zone (66 of 108dp); adjust with `icon --scale 0.5`. Text, images, masks, clip paths, filters and patterns aren't supported — convert them to paths first (Inkscape: *Object to Path*).
 
 **Install:**
 

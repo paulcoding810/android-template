@@ -72,6 +72,7 @@ type options struct {
 	outDir   string
 	teamID   string
 	noGit    bool
+	icon     *iconOptions
 }
 
 func main() {
@@ -84,6 +85,10 @@ func main() {
 }
 
 func run(args []string, stdout, stderr io.Writer) error {
+	if len(args) > 0 && args[0] == "icon" {
+		return runIcon(args[1:], stdout, stderr)
+	}
+
 	fset := flag.NewFlagSet("gen-android", flag.ContinueOnError)
 	fset.SetOutput(stderr)
 	single := fset.Bool("single", false, "use the single-module template")
@@ -92,8 +97,11 @@ func run(args []string, stdout, stderr io.Writer) error {
 	outDir := fset.String("output", ".", "parent directory for the new project")
 	teamID := fset.String("team-id", "", "Apple team ID for the iOS app (kmm only)")
 	noGit := fset.Bool("no-git", false, "skip git init and the initial commit")
+	icon := fset.String("icon", "", "SVG file for the launcher icon")
+	iconBg := fset.String("icon-bg", "#FFFFFF", "launcher icon background color")
 	fset.Usage = func() {
-		fmt.Fprintf(stderr, "Usage: gen-android <package.name> <ProjectName> [flags]\n\nFlags:\n")
+		fmt.Fprintf(stderr, "Usage: gen-android <package.name> <ProjectName> [flags]\n")
+		fmt.Fprintf(stderr, "       gen-android icon <icon.svg> [--dir <project>] [--bg #RRGGBB]\n\nFlags:\n")
 		fset.PrintDefaults()
 	}
 
@@ -125,6 +133,13 @@ func run(args []string, stdout, stderr io.Writer) error {
 		outDir:   *outDir,
 		teamID:   *teamID,
 		noGit:    *noGit,
+	}
+	if *icon != "" {
+		iconOpts, err := loadIconOptions(*icon, *iconBg, defaultScale)
+		if err != nil {
+			return err
+		}
+		opts.icon = &iconOpts
 	}
 	if *single {
 		opts.template = "single"
@@ -189,6 +204,13 @@ func generate(opts options, stdout, stderr io.Writer) error {
 	if err := extractTemplate(templateDirs[opts.template], dir, opts); err != nil {
 		os.RemoveAll(dir)
 		return fmt.Errorf("extracting template: %w", err)
+	}
+
+	if opts.icon != nil {
+		if err := applyIcon(dir, *opts.icon); err != nil {
+			os.RemoveAll(dir)
+			return fmt.Errorf("generating icon: %w", err)
+		}
 	}
 
 	if !opts.noGit {
