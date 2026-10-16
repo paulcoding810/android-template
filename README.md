@@ -53,6 +53,15 @@ make build
 make test   # generates every template into a temp dir and checks renaming
 ```
 
+**Keep templates current:**
+
+```bash
+make upstream-diff                          # compare template-single with `android create`
+make upstream-diff TEMPLATE=template-main
+```
+
+Generates a fresh project with the [Android CLI](https://developer.android.com/tools), lists library and plugin versions that differ (matched by Maven coordinate), then diffs the build config files. Requires the `android` CLI and Python 3.11+. The KMM template should be compared against the Kotlin Multiplatform wizard instead.
+
 ### What's inside
 
 | Template          | Flag        | Contents                                              |
