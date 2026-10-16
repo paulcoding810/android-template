@@ -19,7 +19,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "androidtemplate"
+rootProject.name = "AndroidTemplate"
 include(":app")
 include(":core:network")
 include(":core:model")
