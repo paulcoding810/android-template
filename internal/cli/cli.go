@@ -9,6 +9,7 @@ import (
 
 	"github.com/paulcoding810/android-template/internal/generate"
 	"github.com/paulcoding810/android-template/internal/icon"
+	"github.com/paulcoding810/android-template/internal/version"
 	"github.com/paulcoding810/android-template/templates"
 )
 
@@ -28,6 +29,7 @@ func runCreate(args []string, stdout, stderr io.Writer) error {
 	single := fset.Bool("single", false, "use the single-module template")
 	kmm := fset.Bool("kmm", false, "use the Kotlin Multiplatform template")
 	list := fset.Bool("list", false, "list available templates and exit")
+	showVersion := fset.Bool("version", false, "print the gen-android version and exit")
 	outDir := fset.String("output", ".", "parent directory for the new project")
 	teamID := fset.String("team-id", "", "Apple team ID for the iOS app (kmm only)")
 	noGit := fset.Bool("no-git", false, "skip git init and the initial commit")
@@ -47,6 +49,10 @@ func runCreate(args []string, stdout, stderr io.Writer) error {
 		return ErrReported
 	}
 
+	if *showVersion {
+		fmt.Fprintf(stdout, "gen-android %s\n", version.String())
+		return nil
+	}
 	if *list {
 		printTemplates(stdout)
 		return nil

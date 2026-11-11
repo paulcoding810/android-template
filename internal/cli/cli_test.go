@@ -72,6 +72,16 @@ func TestHelp(t *testing.T) {
 	}
 }
 
+func TestVersion(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	if err := Run([]string{"--version"}, &stdout, &stderr); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(stdout.String(), "gen-android ") {
+		t.Errorf("unexpected version output %q", stdout.String())
+	}
+}
+
 func TestList(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	if err := Run([]string{"--list"}, &stdout, &stderr); err != nil {

@@ -1,10 +1,12 @@
 BINARY := gen-android
 TEMPLATES := templates/main templates/single templates/kmm
+VERSION := $(shell git describe --tags --dirty --always 2>/dev/null)
+LDFLAGS := -X github.com/paulcoding810/android-template/internal/version.Version=$(VERSION)
 
 .PHONY: build clean-templates test upstream-diff
 
 build: clean-templates
-	go build -o $(BINARY) .
+	go build -ldflags "$(LDFLAGS)" -o $(BINARY) .
 
 test: clean-templates
 	go test ./...
