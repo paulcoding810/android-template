@@ -39,6 +39,7 @@ func TestRunRejectsBadArgs(t *testing.T) {
 		{"missing args", []string{"com.example.app"}, false},
 		{"unknown flag", []string{"com.example.app", "App", "--kmp"}, true},
 		{"conflicting flags", []string{"com.example.app", "App", "--single", "--kmm"}, false},
+		{"conflicting empty flag", []string{"com.example.app", "App", "--empty", "--single"}, false},
 		{"invalid package", []string{"com.my-app", "App"}, false},
 		{"unsupported icon", []string{"com.example.app", "App", "--icon", "missing.svg"}, false},
 		{"icon without svg", []string{"icon"}, false},

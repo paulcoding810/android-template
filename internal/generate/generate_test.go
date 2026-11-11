@@ -20,7 +20,7 @@ func newOptions(t *testing.T, template string) Options {
 }
 
 func TestProjectTemplates(t *testing.T) {
-	for _, template := range []string{"main", "single", "kmm"} {
+	for _, template := range []string{"main", "single", "empty", "kmm"} {
 		t.Run(template, func(t *testing.T) {
 			opts := newOptions(t, template)
 			if template == "kmm" {

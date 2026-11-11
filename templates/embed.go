@@ -3,7 +3,7 @@ package templates
 
 import "embed"
 
-//go:embed all:main all:single all:kmm
+//go:embed all:main all:single all:empty all:kmm
 var FS embed.FS
 
 // Default is the template used when no template flag is given.
@@ -18,5 +18,6 @@ type Template struct {
 var All = []Template{
 	{"main", "multi-module Android app (app, core/*, feature/*)"},
 	{"single", "single-module Android app"},
+	{"empty", "minimal Compose app, no extra libraries"},
 	{"kmm", "Kotlin Multiplatform app (Android, iOS, JVM)"},
 }

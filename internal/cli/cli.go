@@ -26,8 +26,12 @@ func Run(args []string, stdout, stderr io.Writer) error {
 func runCreate(args []string, stdout, stderr io.Writer) error {
 	fset := flag.NewFlagSet("gen-android", flag.ContinueOnError)
 	fset.SetOutput(stderr)
-	single := fset.Bool("single", false, "use the single-module template")
-	kmm := fset.Bool("kmm", false, "use the Kotlin Multiplatform template")
+	templateFlags := map[string]*bool{}
+	for _, t := range templates.All {
+		if t.Name != templates.Default {
+			templateFlags[t.Name] = fset.Bool(t.Name, false, "use the "+t.Name+" template: "+t.Description)
+		}
+	}
 	list := fset.Bool("list", false, "list available templates and exit")
 	showVersion := fset.Bool("version", false, "print the gen-android version and exit")
 	outDir := fset.String("output", ".", "parent directory for the new project")
@@ -62,14 +66,21 @@ func runCreate(args []string, stdout, stderr io.Writer) error {
 		fset.Usage()
 		return fmt.Errorf("expected 2 arguments, got %d", len(positional))
 	}
-	if *single && *kmm {
-		return errors.New("--single and --kmm cannot be used together")
+	template := templates.Default
+	for name, set := range templateFlags {
+		if !*set {
+			continue
+		}
+		if template != templates.Default {
+			return fmt.Errorf("--%s and --%s cannot be used together", template, name)
+		}
+		template = name
 	}
 
 	opts := generate.Options{
 		Package:  positional[0],
 		Project:  positional[1],
-		Template: templates.Default,
+		Template: template,
 		OutDir:   *outDir,
 		TeamID:   *teamID,
 		NoGit:    *noGit,
@@ -81,12 +92,6 @@ func runCreate(args []string, stdout, stderr io.Writer) error {
 		}
 		opts.Icon = &iconOpts
 	}
-	if *single {
-		opts.Template = "single"
-	} else if *kmm {
-		opts.Template = "kmm"
-	}
-
 	return generate.Project(opts, stdout, stderr)
 }
 
