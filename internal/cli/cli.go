@@ -26,12 +26,10 @@ func Run(args []string, stdout, stderr io.Writer) error {
 func runCreate(args []string, stdout, stderr io.Writer) error {
 	fset := flag.NewFlagSet("gen-android", flag.ContinueOnError)
 	fset.SetOutput(stderr)
-	templateFlags := map[string]*bool{}
-	for _, t := range templates.All {
-		if t.Name != templates.Default {
-			templateFlags[t.Name] = fset.Bool(t.Name, false, "use the "+t.Name+" template: "+t.Description)
-		}
-	}
+	var template string
+	templateUsage := "project template: " + templates.Names() + " (see --list)"
+	fset.StringVar(&template, "template", templates.Default, templateUsage)
+	fset.StringVar(&template, "t", templates.Default, "shorthand for --template")
 	list := fset.Bool("list", false, "list available templates and exit")
 	showVersion := fset.Bool("version", false, "print the gen-android version and exit")
 	outDir := fset.String("output", ".", "parent directory for the new project")
@@ -66,15 +64,8 @@ func runCreate(args []string, stdout, stderr io.Writer) error {
 		fset.Usage()
 		return fmt.Errorf("expected 2 arguments, got %d", len(positional))
 	}
-	template := templates.Default
-	for name, set := range templateFlags {
-		if !*set {
-			continue
-		}
-		if template != templates.Default {
-			return fmt.Errorf("--%s and --%s cannot be used together", template, name)
-		}
-		template = name
+	if !templates.Exists(template) {
+		return fmt.Errorf("unknown template %q (available: %s)", template, templates.Names())
 	}
 
 	opts := generate.Options{
@@ -146,10 +137,10 @@ func parseInterspersed(fset *flag.FlagSet, args []string) ([]string, error) {
 
 func printTemplates(w io.Writer) {
 	for _, t := range templates.All {
-		flagName := "(default)"
-		if t.Name != templates.Default {
-			flagName = "--" + t.Name
+		marker := ""
+		if t.Name == templates.Default {
+			marker = "(default)"
 		}
-		fmt.Fprintf(w, "%-7s %-10s %s\n", t.Name, flagName, t.Description)
+		fmt.Fprintf(w, "%-7s %-10s %s\n", t.Name, marker, t.Description)
 	}
 }

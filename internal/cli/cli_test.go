@@ -22,7 +22,7 @@ func run(t *testing.T, args ...string) error {
 func TestRunCreatesProject(t *testing.T) {
 	out := t.TempDir()
 	// Flags before, between and after positional arguments.
-	if err := run(t, "--no-git", "com.example.app", "--single", "App", "--output", out); err != nil {
+	if err := run(t, "--no-git", "com.example.app", "-t", "single", "App", "--output", out); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(filepath.Join(out, "App", "app", "build.gradle.kts")); err != nil {
@@ -38,8 +38,9 @@ func TestRunRejectsBadArgs(t *testing.T) {
 	}{
 		{"missing args", []string{"com.example.app"}, false},
 		{"unknown flag", []string{"com.example.app", "App", "--kmp"}, true},
-		{"conflicting flags", []string{"com.example.app", "App", "--single", "--kmm"}, false},
-		{"conflicting empty flag", []string{"com.example.app", "App", "--empty", "--single"}, false},
+		{"unknown template", []string{"com.example.app", "App", "--template", "flutter"}, false},
+		{"template without value", []string{"com.example.app", "App", "--template"}, true},
+		{"old template flag", []string{"com.example.app", "App", "--single"}, true},
 		{"invalid package", []string{"com.my-app", "App"}, false},
 		{"unsupported icon", []string{"com.example.app", "App", "--icon", "missing.svg"}, false},
 		{"icon without svg", []string{"icon"}, false},
@@ -49,7 +50,7 @@ func TestRunRejectsBadArgs(t *testing.T) {
 			out := t.TempDir()
 			args := tc.args
 			if args[0] != "icon" {
-				args = append(args, "--no-git", "--output", out)
+				args = append([]string{"--no-git", "--output", out}, args...)
 			}
 			err := run(t, args...)
 			if err == nil {
@@ -62,6 +63,13 @@ func TestRunRejectsBadArgs(t *testing.T) {
 				t.Errorf("output directory not empty after failure: %v", entries)
 			}
 		})
+	}
+}
+
+func TestUnknownTemplateListsAvailable(t *testing.T) {
+	err := run(t, "com.example.app", "App", "-t", "flutter", "--no-git", "--output", t.TempDir())
+	if err == nil || !strings.Contains(err.Error(), "available: main, single, empty, kmm") {
+		t.Errorf("error should list available templates, got %v", err)
 	}
 }
 
@@ -120,7 +128,7 @@ func TestCreateWithBadIconLeavesNothing(t *testing.T) {
 
 func TestIconSubcommand(t *testing.T) {
 	out := t.TempDir()
-	if err := run(t, "com.example.app", "App", "--kmm", "--no-git", "--output", out); err != nil {
+	if err := run(t, "com.example.app", "App", "--template", "kmm", "--no-git", "--output", out); err != nil {
 		t.Fatal(err)
 	}
 	root := filepath.Join(out, "App")

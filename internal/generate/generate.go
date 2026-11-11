@@ -93,8 +93,8 @@ func Project(opts Options, stdout, stderr io.Writer) error {
 }
 
 func validate(opts Options) error {
-	if !templateExists(opts.Template) {
-		return fmt.Errorf("unknown template %q", opts.Template)
+	if !templates.Exists(opts.Template) {
+		return fmt.Errorf("unknown template %q (available: %s)", opts.Template, templates.Names())
 	}
 	if err := validatePackage(opts.Package); err != nil {
 		return err
@@ -111,15 +111,6 @@ func validate(opts Options) error {
 		}
 	}
 	return nil
-}
-
-func templateExists(name string) bool {
-	for _, t := range templates.All {
-		if t.Name == name {
-			return true
-		}
-	}
-	return false
 }
 
 func validatePackage(pkg string) error {

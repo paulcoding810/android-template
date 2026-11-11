@@ -10,9 +10,9 @@ gen-android <package.name> <ProjectName> [flags]
 
 ```bash
 gen-android com.example.myapp MyApp                          # multi-module template
-gen-android com.example.myapp MyApp --single                 # single-module template
-gen-android com.example.myapp MyApp --empty                  # minimal Compose app
-gen-android com.example.myapp MyApp --kmm --team-id ABCDE12345
+gen-android com.example.myapp MyApp -t single               # single-module template
+gen-android com.example.myapp MyApp -t empty                # minimal Compose app
+gen-android com.example.myapp MyApp --template kmm --team-id ABCDE12345
 gen-android com.example.myapp MyApp --output ~/projects --no-git
 gen-android com.example.myapp MyApp --icon logo.svg --icon-bg "#1E88E5"
 gen-android icon logo.svg --dir MyApp --bg "#1E88E5"   # update an existing project
@@ -25,11 +25,9 @@ The `gen-android` binary embeds the project templates at compile time via Go's `
 
 | Flag               | Description                                              |
 | ------------------ | -------------------------------------------------------- |
-| `--single`         | Use the single-module template                           |
-| `--empty`          | Use the minimal template (Compose only, no extra libraries) |
-| `--kmm`            | Use the Kotlin Multiplatform template (Android, iOS, JVM) |
+| `-t`, `--template <name>` | Template to use: `main` (default), `single`, `empty`, `kmm` |
 | `--output <dir>`   | Parent directory for the new project (default `.`)       |
-| `--team-id <id>`   | Apple team ID written to the iOS config (`--kmm` only)   |
+| `--team-id <id>`   | Apple team ID written to the iOS config (`kmm` template only)   |
 | `--no-git`         | Skip `git init` and the initial commit                   |
 | `--icon <file.svg>`| Generate the launcher icon from an SVG                   |
 | `--icon-bg <color>`| Launcher icon background, `#RGB` or `#RRGGBB` (default white) |
@@ -87,7 +85,7 @@ templates/              embedded project templates (embed.go lists them)
 scripts/                maintenance scripts (upstream-diff)
 ```
 
-To add a template, put the project under `templates/<name>/` (using package `com.paulcoding.androidtemplate` and name `AndroidTemplate`), and add it to the `go:embed` line and `All` in `templates/embed.go`. The CLI flag (`--<name>`) and `--list` entry are created from `All`.
+To add a template, put the project under `templates/<name>/` (using package `com.paulcoding.androidtemplate` and name `AndroidTemplate`), and add it to the `go:embed` line and `All` in `templates/embed.go`. `--template` and `--list` pick it up from `All`.
 
 **Develop:**
 
@@ -106,11 +104,11 @@ Generates a fresh project with the [Android CLI](https://developer.android.com/t
 
 ### What's inside
 
-| Template            | Flag        | Contents                                              |
-| ------------------- | ----------- | ----------------------------------------------------- |
-| `templates/main`    | (default)   | Multi-module Android app: `app`, `core/*`, `feature/*` |
-| `templates/single`  | `--single`  | Single-module Android app: `app/`                     |
-| `templates/empty`   | `--empty`   | Minimal Compose app: one screen, no Ktor/Koin/Room/navigation. Build config follows `android create empty-activity` |
-| `templates/kmm`     | `--kmm`     | Kotlin Multiplatform: `shared`, `androidApp`, `iosApp`, `jvmApp` |
+| `--template`        | Contents                                              |
+| ------------------- | ----------------------------------------------------- |
+| `main` (default)    | Multi-module Android app: `app`, `core/*`, `feature/*` |
+| `single`            | Single-module Android app: `app/`                     |
+| `empty`             | Minimal Compose app: one screen, no Ktor/Koin/Room/navigation. Build config follows `android create empty-activity` |
+| `kmm`               | Kotlin Multiplatform: `shared`, `androidApp`, `iosApp`, `jvmApp` |
 
 All templates use Kotlin, Jetpack Compose (Compose Multiplatform for KMM), Gradle Kotlin DSL and proguard rules.
