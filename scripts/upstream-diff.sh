@@ -2,7 +2,7 @@
 # Diff a template's build config against a fresh `android create` project.
 set -euo pipefail
 
-TEMPLATE=${1:-template-single}
+TEMPLATE=${1:-templates/single}
 ANDROID_TEMPLATE=${2:-empty-activity}
 FILES=(
   gradle/libs.versions.toml

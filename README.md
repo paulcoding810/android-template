@@ -62,6 +62,19 @@ make build
 
 `make build` deletes local build output (`build/`, `.gradle/`, `.idea/`, `local.properties`, …) from the template folders first, because `go:embed` cannot exclude paths and would otherwise bloat the binary. The generator also skips these paths when writing a project.
 
+**Repository layout:**
+
+```
+main.go                 entry point, calls internal/cli
+internal/cli/           flag parsing, create and icon commands
+internal/generate/      template extraction, renaming, validation, git init
+internal/icon/          SVG to Android/iOS launcher icons
+templates/              embedded project templates (embed.go lists them)
+scripts/                maintenance scripts (upstream-diff)
+```
+
+To add a template, put the project under `templates/<name>/` (using package `com.paulcoding.androidtemplate` and name `AndroidTemplate`), add it to the `go:embed` line and `All` in `templates/embed.go`, and give it a flag in `internal/cli`.
+
 **Develop:**
 
 ```bash
@@ -71,18 +84,18 @@ make test   # generates every template into a temp dir and checks renaming
 **Keep templates current:**
 
 ```bash
-make upstream-diff                          # compare template-single with `android create`
-make upstream-diff TEMPLATE=template-main
+make upstream-diff                          # compare templates/single with `android create`
+make upstream-diff TEMPLATE=templates/main
 ```
 
 Generates a fresh project with the [Android CLI](https://developer.android.com/tools), lists library and plugin versions that differ (matched by Maven coordinate), then diffs the build config files. Requires the `android` CLI and Python 3.11+. The KMM template should be compared against the Kotlin Multiplatform wizard instead.
 
 ### What's inside
 
-| Template          | Flag        | Contents                                              |
-| ----------------- | ----------- | ----------------------------------------------------- |
-| `template-main`   | (default)   | Multi-module Android app: `app`, `core/*`, `feature/*` |
-| `template-single` | `--single`  | Single-module Android app: `app/`                     |
-| `template-kmm`    | `--kmm`     | Kotlin Multiplatform: `shared`, `androidApp`, `iosApp`, `jvmApp` |
+| Template            | Flag        | Contents                                              |
+| ------------------- | ----------- | ----------------------------------------------------- |
+| `templates/main`    | (default)   | Multi-module Android app: `app`, `core/*`, `feature/*` |
+| `templates/single`  | `--single`  | Single-module Android app: `app/`                     |
+| `templates/kmm`     | `--kmm`     | Kotlin Multiplatform: `shared`, `androidApp`, `iosApp`, `jvmApp` |
 
 All templates use Kotlin, Jetpack Compose (Compose Multiplatform for KMM), Gradle Kotlin DSL and proguard rules.

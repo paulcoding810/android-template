@@ -1,5 +1,5 @@
 BINARY := gen-android
-TEMPLATES := template-main template-single template-kmm
+TEMPLATES := templates/main templates/single templates/kmm
 
 .PHONY: build clean-templates test upstream-diff
 
@@ -15,6 +15,6 @@ clean-templates:
 		-o -name xcuserdata -o -name DerivedData \) -type d -prune -exec rm -rf {} +
 	find $(TEMPLATES) \( -name local.properties -o -name .DS_Store \) -type f -delete
 
-# Compare a template with a fresh `android create` project, e.g. make upstream-diff TEMPLATE=template-main
+# Compare a template with a fresh `android create` project, e.g. make upstream-diff TEMPLATE=templates/main
 upstream-diff:
-	./scripts/upstream-diff.sh $(or $(TEMPLATE),template-single)
+	./scripts/upstream-diff.sh $(or $(TEMPLATE),templates/single)

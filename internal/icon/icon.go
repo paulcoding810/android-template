@@ -1,10 +1,10 @@
-package main
+// Package icon renders an SVG into Android and iOS launcher icons.
+package icon
 
 import (
 	"bytes"
 	"encoding/xml"
 	"errors"
-	"flag"
 	"fmt"
 	"image"
 	"image/color"
@@ -25,7 +25,7 @@ const (
 	svgNamespace = "http://www.w3.org/2000/svg"
 	// Adaptive icons are 108dp, of which launchers show the central 72dp.
 	adaptiveVisible = 72.0 / 108.0
-	defaultScale    = 66.0 / 108.0
+	DefaultScale    = 66.0 / 108.0
 )
 
 var densities = []struct {
@@ -44,61 +44,28 @@ var unsupportedElements = map[string]bool{
 
 var hexColorRe = regexp.MustCompile(`^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$`)
 
-type iconOptions struct {
+type Options struct {
 	svg   []byte
 	bg    color.NRGBA
 	scale float64
 }
 
-func runIcon(args []string, stdout, stderr io.Writer) error {
-	fset := flag.NewFlagSet("gen-android icon", flag.ContinueOnError)
-	fset.SetOutput(stderr)
-	dir := fset.String("dir", ".", "project directory")
-	bg := fset.String("bg", "#FFFFFF", "background color (#RGB or #RRGGBB)")
-	scale := fset.Float64("scale", defaultScale, "fraction of the 108dp adaptive canvas the artwork fills")
-	fset.Usage = func() {
-		fmt.Fprintf(stderr, "Usage: gen-android icon <icon.svg> [flags]\n\nFlags:\n")
-		fset.PrintDefaults()
-	}
-
-	positional, err := parseInterspersed(fset, args)
-	if errors.Is(err, flag.ErrHelp) {
-		return nil
-	}
-	if err != nil {
-		return errReported
-	}
-	if len(positional) != 1 {
-		fset.Usage()
-		return fmt.Errorf("expected 1 argument, got %d", len(positional))
-	}
-
-	opts, err := loadIconOptions(positional[0], *bg, *scale)
-	if err != nil {
-		return err
-	}
-	if err := applyIcon(*dir, opts); err != nil {
-		return err
-	}
-	fmt.Fprintf(stdout, "Launcher icon updated in %s\n", *dir)
-	return nil
-}
-
-func loadIconOptions(svgPath, bg string, scale float64) (iconOptions, error) {
+// Load reads and validates an SVG; scale is the fraction of the 108dp adaptive canvas the artwork fills.
+func Load(svgPath, bg string, scale float64) (Options, error) {
 	data, err := os.ReadFile(svgPath)
 	if err != nil {
-		return iconOptions{}, err
+		return Options{}, err
 	}
 	c, err := parseHexColor(bg)
 	if err != nil {
-		return iconOptions{}, err
+		return Options{}, err
 	}
 	if scale <= 0 || scale > 1 {
-		return iconOptions{}, fmt.Errorf("invalid scale %v: must be in (0, 1]", scale)
+		return Options{}, fmt.Errorf("invalid scale %v: must be in (0, 1]", scale)
 	}
-	opts := iconOptions{svg: data, bg: c, scale: scale}
+	opts := Options{svg: data, bg: c, scale: scale}
 	if _, err := opts.parse(); err != nil {
-		return iconOptions{}, fmt.Errorf("%s: %w", svgPath, err)
+		return Options{}, fmt.Errorf("%s: %w", svgPath, err)
 	}
 	return opts, nil
 }
@@ -115,12 +82,12 @@ func parseHexColor(s string) (color.NRGBA, error) {
 	return color.NRGBA{R: uint8(v >> 16), G: uint8(v >> 8), B: uint8(v), A: 255}, nil
 }
 
-func (o iconOptions) hexColor() string {
+func (o Options) hexColor() string {
 	return fmt.Sprintf("#%02X%02X%02X", o.bg.R, o.bg.G, o.bg.B)
 }
 
 // parse returns a fresh icon; rendering mutates its transform, so each render needs its own.
-func (o iconOptions) parse() (*oksvg.SvgIcon, error) {
+func (o Options) parse() (*oksvg.SvgIcon, error) {
 	if err := checkSupported(o.svg); err != nil {
 		return nil, err
 	}
@@ -159,7 +126,7 @@ func checkSupported(data []byte) error {
 }
 
 // render draws the artwork centered, filling `fill` of a size×size canvas, over an optional background shape.
-func (o iconOptions) render(size int, fill float64, bg bool, cornerRadius float64) (*image.NRGBA, error) {
+func (o Options) render(size int, fill float64, bg bool, cornerRadius float64) (*image.NRGBA, error) {
 	icon, err := o.parse()
 	if err != nil {
 		return nil, err
@@ -202,7 +169,8 @@ func maskRoundedRect(img *image.NRGBA, radius float64) {
 	}
 }
 
-func applyIcon(projectDir string, opts iconOptions) error {
+// Apply writes launcher icons into the Android (and, if present, iOS) app in projectDir.
+func Apply(projectDir string, opts Options) error {
 	resDir, err := findResDir(projectDir)
 	if err != nil {
 		return err

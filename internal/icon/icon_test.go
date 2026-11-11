@@ -1,7 +1,6 @@
-package main
+package icon
 
 import (
-	"bytes"
 	"image"
 	"image/png"
 	"os"
@@ -10,15 +9,34 @@ import (
 	"testing"
 )
 
-func generateProject(t *testing.T, extra ...string) string {
+const testSVG = "testdata/icon.svg"
+
+func touch(t *testing.T, path string) {
 	t.Helper()
-	out := t.TempDir()
-	args := append([]string{"com.example.myapp", "MyApp", "--no-git", "--output", out}, extra...)
-	var stdout, stderr bytes.Buffer
-	if err := run(args, &stdout, &stderr); err != nil {
-		t.Fatalf("run: %v\n%s", err, stderr.String())
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		t.Fatal(err)
 	}
-	return filepath.Join(out, "MyApp")
+	if err := os.WriteFile(path, []byte("old"), 0644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// fakeProject lays out the launcher-icon files a template ships with.
+func fakeProject(t *testing.T, module string, ios bool) (root, resDir string) {
+	t.Helper()
+	root = t.TempDir()
+	resDir = filepath.Join(root, module, "src", "main", "res")
+	for _, d := range densities {
+		touch(t, filepath.Join(resDir, "mipmap-"+d.name, "ic_launcher.webp"))
+		touch(t, filepath.Join(resDir, "mipmap-"+d.name, "ic_launcher_round.webp"))
+	}
+	touch(t, filepath.Join(resDir, "drawable", "ic_launcher_background.xml"))
+	touch(t, filepath.Join(resDir, "drawable-v24", "ic_launcher_foreground.xml"))
+	touch(t, filepath.Join(resDir, "values", "strings.xml"))
+	if ios {
+		touch(t, filepath.Join(root, "iosApp", "iosApp", "Assets.xcassets", "AppIcon.appiconset", "app-icon-1024.png"))
+	}
+	return root, resDir
 }
 
 func decodePNG(t *testing.T, path string) image.Image {
@@ -38,6 +56,15 @@ func decodePNG(t *testing.T, path string) image.Image {
 func alphaAt(img image.Image, x, y int) uint32 {
 	_, _, _, a := img.At(x, y).RGBA()
 	return a
+}
+
+func load(t *testing.T) Options {
+	t.Helper()
+	opts, err := Load(testSVG, "#1e88e5", DefaultScale)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return opts
 }
 
 func checkAndroidIcon(t *testing.T, resDir string) {
@@ -86,20 +113,25 @@ func checkAndroidIcon(t *testing.T, resDir string) {
 	if matches, _ := filepath.Glob(filepath.Join(resDir, "drawable*", "ic_launcher_*")); len(matches) != 0 {
 		t.Errorf("old drawable icons left: %v", matches)
 	}
-}
-
-func TestIconOnCreate(t *testing.T) {
-	root := generateProject(t, "--icon", "testdata/icon.svg", "--icon-bg", "#1e88e5")
-	checkAndroidIcon(t, filepath.Join(root, "app", "src", "main", "res"))
-}
-
-func TestIconSubcommandKMM(t *testing.T) {
-	root := generateProject(t, "--kmm")
-	var stdout, stderr bytes.Buffer
-	if err := run([]string{"icon", "testdata/icon.svg", "--dir", root, "--bg", "#1E88E5"}, &stdout, &stderr); err != nil {
-		t.Fatalf("icon: %v\n%s", err, stderr.String())
+	if _, err := os.Stat(filepath.Join(resDir, "values", "strings.xml")); err != nil {
+		t.Error("unrelated resources must be kept")
 	}
-	checkAndroidIcon(t, filepath.Join(root, "androidApp", "src", "main", "res"))
+}
+
+func TestApplyAndroid(t *testing.T) {
+	root, resDir := fakeProject(t, "app", false)
+	if err := Apply(root, load(t)); err != nil {
+		t.Fatal(err)
+	}
+	checkAndroidIcon(t, resDir)
+}
+
+func TestApplyKMM(t *testing.T) {
+	root, resDir := fakeProject(t, "androidApp", true)
+	if err := Apply(root, load(t)); err != nil {
+		t.Fatal(err)
+	}
+	checkAndroidIcon(t, resDir)
 
 	ios := decodePNG(t, filepath.Join(root, "iosApp", "iosApp", "Assets.xcassets", "AppIcon.appiconset", "app-icon-1024.png"))
 	if b := ios.Bounds(); b.Dx() != 1024 || b.Dy() != 1024 {
@@ -113,7 +145,13 @@ func TestIconSubcommandKMM(t *testing.T) {
 	}
 }
 
-func TestIconRejectsBadInput(t *testing.T) {
+func TestApplyRejectsNonProject(t *testing.T) {
+	if err := Apply(t.TempDir(), load(t)); err == nil {
+		t.Fatal("expected error outside an app project")
+	}
+}
+
+func TestLoadRejectsBadInput(t *testing.T) {
 	dir := t.TempDir()
 	textSVG := filepath.Join(dir, "text.svg")
 	os.WriteFile(textSVG, []byte(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><text>A</text></svg>`), 0644)
@@ -121,30 +159,21 @@ func TestIconRejectsBadInput(t *testing.T) {
 	os.WriteFile(noViewBox, []byte(`<svg xmlns="http://www.w3.org/2000/svg"><rect width="1" height="1"/></svg>`), 0644)
 
 	for _, tc := range []struct {
-		name string
-		args []string
+		name  string
+		path  string
+		bg    string
+		scale float64
 	}{
-		{"text element", []string{"icon", textSVG, "--dir", dir}},
-		{"no viewBox", []string{"icon", noViewBox, "--dir", dir}},
-		{"missing file", []string{"icon", filepath.Join(dir, "nope.svg"), "--dir", dir}},
-		{"bad color", []string{"icon", "testdata/icon.svg", "--dir", dir, "--bg", "blue"}},
-		{"bad scale", []string{"icon", "testdata/icon.svg", "--dir", dir, "--scale", "2"}},
-		{"not a project", []string{"icon", "testdata/icon.svg", "--dir", dir}},
+		{"text element", textSVG, "#FFFFFF", DefaultScale},
+		{"no viewBox", noViewBox, "#FFFFFF", DefaultScale},
+		{"missing file", filepath.Join(dir, "nope.svg"), "#FFFFFF", DefaultScale},
+		{"bad color", testSVG, "blue", DefaultScale},
+		{"bad scale", testSVG, "#FFFFFF", 2},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			var stdout, stderr bytes.Buffer
-			if err := run(tc.args, &stdout, &stderr); err == nil {
+			if _, err := Load(tc.path, tc.bg, tc.scale); err == nil {
 				t.Fatal("expected error")
 			}
 		})
-	}
-
-	out := t.TempDir()
-	var stdout, stderr bytes.Buffer
-	if err := run([]string{"com.example.app", "App", "--no-git", "--output", out, "--icon", textSVG}, &stdout, &stderr); err == nil {
-		t.Fatal("expected error for unsupported svg on create")
-	}
-	if entries, _ := os.ReadDir(out); len(entries) != 0 {
-		t.Errorf("project created despite bad icon: %v", entries)
 	}
 }

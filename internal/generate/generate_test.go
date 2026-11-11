@@ -1,0 +1,130 @@
+package generate
+
+import (
+	"bytes"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+func newOptions(t *testing.T, template string) Options {
+	return Options{
+		Package:  "com.example.myapp",
+		Project:  "MyApp",
+		Template: template,
+		OutDir:   t.TempDir(),
+		NoGit:    true,
+	}
+}
+
+func TestProjectTemplates(t *testing.T) {
+	for _, template := range []string{"main", "single", "kmm"} {
+		t.Run(template, func(t *testing.T) {
+			opts := newOptions(t, template)
+			if template == "kmm" {
+				opts.TeamID = "ABCDE12345"
+			}
+			var stdout, stderr bytes.Buffer
+			if err := Project(opts, &stdout, &stderr); err != nil {
+				t.Fatalf("Project: %v\n%s", err, stderr.String())
+			}
+
+			root := filepath.Join(opts.OutDir, "MyApp")
+			files := 0
+			err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+				if err != nil {
+					return err
+				}
+				rel, _ := filepath.Rel(root, p)
+				if skippedNames[d.Name()] {
+					t.Errorf("skipped path copied: %s", rel)
+				}
+				if strings.Contains(filepath.ToSlash(rel), "paulcoding") {
+					t.Errorf("path not renamed: %s", rel)
+				}
+				if d.IsDir() {
+					return nil
+				}
+				files++
+				data, err := os.ReadFile(p)
+				if err != nil {
+					return err
+				}
+				lower := strings.ToLower(string(data))
+				if strings.Contains(lower, "paulcoding") || strings.Contains(lower, "androidtemplate") {
+					t.Errorf("template identifier left in %s", rel)
+				}
+				return nil
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if files == 0 {
+				t.Fatal("no files generated")
+			}
+
+			settings, err := os.ReadFile(filepath.Join(root, "settings.gradle.kts"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(string(settings), `rootProject.name = "MyApp"`) {
+				t.Error("rootProject.name not set to project name")
+			}
+
+			if info, err := os.Stat(filepath.Join(root, "gradlew")); err != nil || info.Mode()&0100 == 0 {
+				t.Errorf("gradlew missing or not executable: %v", err)
+			}
+
+			if template == "kmm" {
+				cfg, err := os.ReadFile(filepath.Join(root, "iosApp", "Configuration", "Config.xcconfig"))
+				if err != nil {
+					t.Fatal(err)
+				}
+				if !strings.Contains(string(cfg), "TEAM_ID=ABCDE12345\n") {
+					t.Error("team ID not written to Config.xcconfig")
+				}
+			}
+		})
+	}
+}
+
+func TestProjectRejectsBadOptions(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		modify func(*Options)
+	}{
+		{"unknown template", func(o *Options) { o.Template = "flutter" }},
+		{"single segment package", func(o *Options) { o.Package = "example" }},
+		{"dash in package", func(o *Options) { o.Package = "com.my-app" }},
+		{"keyword in package", func(o *Options) { o.Package = "com.example.class" }},
+		{"uppercase package", func(o *Options) { o.Package = "com.Example.app" }},
+		{"space in project", func(o *Options) { o.Project = "My App" }},
+		{"team id without kmm", func(o *Options) { o.TeamID = "ABCDE12345" }},
+		{"bad team id", func(o *Options) { o.Template = "kmm"; o.TeamID = "abc" }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			opts := newOptions(t, "main")
+			tc.modify(&opts)
+			var stdout, stderr bytes.Buffer
+			if err := Project(opts, &stdout, &stderr); err == nil {
+				t.Fatal("expected error")
+			}
+			if entries, _ := os.ReadDir(opts.OutDir); len(entries) != 0 {
+				t.Errorf("output directory not empty after failure: %v", entries)
+			}
+		})
+	}
+}
+
+func TestProjectRejectsExistingDir(t *testing.T) {
+	opts := newOptions(t, "main")
+	if err := os.Mkdir(filepath.Join(opts.OutDir, opts.Project), 0755); err != nil {
+		t.Fatal(err)
+	}
+	var stdout, stderr bytes.Buffer
+	if err := Project(opts, &stdout, &stderr); err == nil {
+		t.Fatal("expected error for existing directory")
+	}
+}
