@@ -22,7 +22,7 @@ func run(t *testing.T, args ...string) error {
 func TestRunCreatesProject(t *testing.T) {
 	out := t.TempDir()
 	// Flags before, between and after positional arguments.
-	if err := run(t, "--no-git", "com.example.app", "-t", "single", "App", "--output", out); err != nil {
+	if err := run(t, "--no-git", "com.example.app", "-t", "single", "App", "-o", out); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(filepath.Join(out, "App", "app", "build.gradle.kts")); err != nil {

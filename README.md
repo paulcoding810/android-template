@@ -13,7 +13,7 @@ gen-android com.example.myapp MyApp                          # multi-module temp
 gen-android com.example.myapp MyApp -t single               # single-module template
 gen-android com.example.myapp MyApp -t empty                # minimal Compose app
 gen-android com.example.myapp MyApp --template kmm --team-id ABCDE12345
-gen-android com.example.myapp MyApp --output ~/projects --no-git
+gen-android com.example.myapp MyApp -o ~/projects --no-git
 gen-android com.example.myapp MyApp --icon logo.svg --icon-bg "#1E88E5"
 gen-android icon logo.svg --dir MyApp --bg "#1E88E5"   # update an existing project
 gen-android --list
@@ -26,7 +26,7 @@ The `gen-android` binary embeds the project templates at compile time via Go's `
 | Flag               | Description                                              |
 | ------------------ | -------------------------------------------------------- |
 | `-t`, `--template <name>` | Template to use: `main` (default), `single`, `empty`, `kmm` |
-| `--output <dir>`   | Parent directory for the new project (default `.`)       |
+| `-o`, `--output <dir>` | Parent directory for the new project (default `.`)       |
 | `--team-id <id>`   | Apple team ID written to the iOS config (`kmm` template only)   |
 | `--no-git`         | Skip `git init` and the initial commit                   |
 | `--icon <file.svg>`| Generate the launcher icon from an SVG                   |

@@ -32,7 +32,9 @@ func runCreate(args []string, stdout, stderr io.Writer) error {
 	fset.StringVar(&template, "t", templates.Default, "shorthand for --template")
 	list := fset.Bool("list", false, "list available templates and exit")
 	showVersion := fset.Bool("version", false, "print the gen-android version and exit")
-	outDir := fset.String("output", ".", "parent directory for the new project")
+	var outDir string
+	fset.StringVar(&outDir, "output", ".", "parent directory for the new project")
+	fset.StringVar(&outDir, "o", ".", "shorthand for --output")
 	teamID := fset.String("team-id", "", "Apple team ID for the iOS app (kmm only)")
 	noGit := fset.Bool("no-git", false, "skip git init and the initial commit")
 	iconPath := fset.String("icon", "", "SVG file for the launcher icon")
@@ -72,7 +74,7 @@ func runCreate(args []string, stdout, stderr io.Writer) error {
 		Package:  positional[0],
 		Project:  positional[1],
 		Template: template,
-		OutDir:   *outDir,
+		OutDir:   outDir,
 		TeamID:   *teamID,
 		NoGit:    *noGit,
 	}
