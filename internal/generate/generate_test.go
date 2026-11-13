@@ -134,6 +134,46 @@ func TestProjectMinSDK(t *testing.T) {
 	}
 }
 
+func TestProjectAppName(t *testing.T) {
+	opts := newOptions(t, "kmm")
+	opts.AppName = `Bob's "Notes" & $tuff`
+	var stdout, stderr bytes.Buffer
+	if err := Project(opts, &stdout, &stderr); err != nil {
+		t.Fatal(err)
+	}
+	root := filepath.Join(opts.OutDir, opts.Project)
+	for file, want := range map[string]string{
+		"androidApp/src/main/res/values/strings.xml":                             `<string name="app_name">Bob\'s \"Notes\" &amp; $tuff</string>`,
+		"iosApp/iosApp/Info.plist":                                               `<string>Bob's "Notes" &amp; $tuff</string>`,
+		"jvmApp/src/main/kotlin/com/example/myapp/jvm/Main.kt":                   `title = "Bob's \"Notes\" & \$tuff",`,
+		"iosApp/Configuration/Config.xcconfig":                                   "PRODUCT_NAME=MyApp",
+		"shared/src/commonMain/kotlin/com/example/myapp/data/DatabaseFactory.kt": `"myapp.db"`,
+	} {
+		data, err := os.ReadFile(filepath.Join(root, file))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(string(data), want) {
+			t.Errorf("%s: want %s\n%s", file, want, data)
+		}
+	}
+}
+
+func TestProjectAppNameDefaultsToProject(t *testing.T) {
+	opts := newOptions(t, "single")
+	var stdout, stderr bytes.Buffer
+	if err := Project(opts, &stdout, &stderr); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(opts.OutDir, opts.Project, "app/src/main/res/values/strings.xml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), `<string name="app_name">MyApp</string>`) {
+		t.Errorf("app_name should default to the project name:\n%s", data)
+	}
+}
+
 func TestProjectRejectsBadOptions(t *testing.T) {
 	for _, tc := range []struct {
 		name   string
@@ -147,6 +187,8 @@ func TestProjectRejectsBadOptions(t *testing.T) {
 		{"space in project", func(o *Options) { o.Project = "My App" }},
 		{"team id without kmm", func(o *Options) { o.TeamID = "ABCDE12345" }},
 		{"bad team id", func(o *Options) { o.Template = "kmm"; o.TeamID = "abc" }},
+		{"blank app name", func(o *Options) { o.AppName = "  " }},
+		{"multi-line app name", func(o *Options) { o.AppName = "Acme\nNotes" }},
 		{"min sdk too low", func(o *Options) { o.MinSDK = 22 }},
 		{"min sdk too high", func(o *Options) { o.MinSDK = 99 }},
 	} {

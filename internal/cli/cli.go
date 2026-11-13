@@ -36,6 +36,7 @@ func runCreate(args []string, stdout, stderr io.Writer) error {
 	fset.StringVar(&outDir, "output", ".", "parent directory for the new project")
 	fset.StringVar(&outDir, "o", ".", "shorthand for --output")
 	teamID := fset.String("team-id", "", "Apple team ID for the iOS app (kmm only)")
+	appName := fset.String("app-name", "", "name shown under the app icon, may contain spaces (default: ProjectName)")
 	minSDK := fset.Int("min-sdk", 0, "Android minSdk (default: the template's, see --list)")
 	noGit := fset.Bool("no-git", false, "skip git init and the initial commit")
 	iconPath := fset.String("icon", "", "SVG file for the launcher icon")
@@ -74,6 +75,7 @@ func runCreate(args []string, stdout, stderr io.Writer) error {
 	opts := generate.Options{
 		Package:  positional[0],
 		Project:  positional[1],
+		AppName:  *appName,
 		Template: template,
 		OutDir:   outDir,
 		TeamID:   *teamID,

@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"unicode"
 
 	"github.com/paulcoding810/android-template/internal/icon"
 	"github.com/paulcoding810/android-template/internal/version"
@@ -61,6 +62,7 @@ var (
 type Options struct {
 	Package  string
 	Project  string
+	AppName  string // user-visible name; defaults to Project
 	Template string
 	OutDir   string
 	TeamID   string
@@ -71,6 +73,9 @@ type Options struct {
 
 // Project validates opts and writes the new project to OutDir/Project.
 func Project(opts Options, stdout, stderr io.Writer) error {
+	if opts.AppName == "" {
+		opts.AppName = opts.Project
+	}
 	if err := validate(opts); err != nil {
 		return err
 	}
@@ -103,6 +108,9 @@ func Project(opts Options, stdout, stderr io.Writer) error {
 }
 
 func validate(opts Options) error {
+	if strings.TrimSpace(opts.AppName) == "" || strings.IndexFunc(opts.AppName, unicode.IsControl) >= 0 {
+		return fmt.Errorf("invalid app name %q: must be non-empty text on one line", opts.AppName)
+	}
 	if !templates.Exists(opts.Template) {
 		return fmt.Errorf("unknown template %q (available: %s)", opts.Template, templates.Names())
 	}
@@ -145,13 +153,23 @@ func validatePackage(pkg string) error {
 func extract(outDir string, opts Options) error {
 	newPkgSlash := strings.ReplaceAll(opts.Package, ".", "/")
 	oldPkgSlash := strings.ReplaceAll(oldPkg, ".", "/")
-	replacer := strings.NewReplacer(
-		oldPkg, opts.Package,
-		oldProjName, opts.Project,
-		oldProjLower, strings.ToLower(opts.Project),
-		oldDisplayName, opts.Project,
-		oldProjKebab, strings.ToLower(opts.Project),
-	)
+	// The display name needs file-specific escaping, so keep one replacer per extension.
+	replacers := map[string]*strings.Replacer{}
+	replacerFor := func(p string) *strings.Replacer {
+		ext := path.Ext(p)
+		if r, ok := replacers[ext]; ok {
+			return r
+		}
+		r := strings.NewReplacer(
+			oldPkg, opts.Package,
+			oldProjName, opts.Project,
+			oldProjLower, strings.ToLower(opts.Project),
+			oldDisplayName, escapeDisplayName(ext, opts.AppName),
+			oldProjKebab, strings.ToLower(opts.Project),
+		)
+		replacers[ext] = r
+		return r
+	}
 
 	return fs.WalkDir(templates.FS, opts.Template, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -169,7 +187,7 @@ func extract(outDir string, opts Options) error {
 		}
 
 		rel := strings.TrimPrefix(strings.TrimPrefix(p, opts.Template), "/")
-		rel = replacer.Replace(strings.ReplaceAll(rel, oldPkgSlash, newPkgSlash))
+		rel = replacerFor("").Replace(strings.ReplaceAll(rel, oldPkgSlash, newPkgSlash))
 		outPath := filepath.Join(outDir, filepath.FromSlash(rel))
 		if err := os.MkdirAll(filepath.Dir(outPath), 0755); err != nil {
 			return err
@@ -180,7 +198,7 @@ func extract(outDir string, opts Options) error {
 			return err
 		}
 
-		content := replacer.Replace(string(data))
+		content := replacerFor(p).Replace(string(data))
 		if rel == "gradle.properties" {
 			content = generatedBy(opts.Template) + content
 		}
@@ -200,6 +218,23 @@ func extract(outDir string, opts Options) error {
 		}
 		return os.WriteFile(outPath, []byte(content), perm)
 	})
+}
+
+// escapeDisplayName makes the app name a valid literal in the file types that show it.
+func escapeDisplayName(ext, name string) string {
+	switch ext {
+	case ".xml": // Android string resource
+		name = strings.NewReplacer(`\`, `\\`, `'`, `\'`, `"`, `\"`, "&", "&amp;", "<", "&lt;", ">", "&gt;").Replace(name)
+		if strings.HasPrefix(name, "@") || strings.HasPrefix(name, "?") {
+			name = `\` + name
+		}
+		return name
+	case ".plist":
+		return strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;").Replace(name)
+	case ".kt", ".kts":
+		return strings.NewReplacer(`\`, `\\`, `"`, `\"`, "$", `\$`).Replace(name)
+	}
+	return name
 }
 
 // generatedBy records the generator build, so a project can later be compared with newer templates.
