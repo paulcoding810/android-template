@@ -155,6 +155,10 @@ func TestLoadRejectsBadInput(t *testing.T) {
 	dir := t.TempDir()
 	textSVG := filepath.Join(dir, "text.svg")
 	os.WriteFile(textSVG, []byte(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><text>A</text></svg>`), 0644)
+	pngFile := filepath.Join(dir, "logo.png")
+	os.WriteFile(pngFile, []byte("\x89PNG\r\n\x1a\nrest"), 0644)
+	htmlFile := filepath.Join(dir, "page.svg")
+	os.WriteFile(htmlFile, []byte(`<html><body/></html>`), 0644)
 	noViewBox := filepath.Join(dir, "empty.svg")
 	os.WriteFile(noViewBox, []byte(`<svg xmlns="http://www.w3.org/2000/svg"><rect width="1" height="1"/></svg>`), 0644)
 
@@ -167,12 +171,18 @@ func TestLoadRejectsBadInput(t *testing.T) {
 		{"text element", textSVG, "#FFFFFF", DefaultScale},
 		{"no viewBox", noViewBox, "#FFFFFF", DefaultScale},
 		{"missing file", filepath.Join(dir, "nope.svg"), "#FFFFFF", DefaultScale},
+		{"png file", pngFile, "#FFFFFF", DefaultScale},
+		{"html file", htmlFile, "#FFFFFF", DefaultScale},
 		{"bad color", testSVG, "blue", DefaultScale},
 		{"bad scale", testSVG, "#FFFFFF", 2},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			if _, err := Load(tc.path, tc.bg, tc.scale); err == nil {
+			_, err := Load(tc.path, tc.bg, tc.scale)
+			if err == nil {
 				t.Fatal("expected error")
+			}
+			if tc.name == "png file" && !strings.Contains(err.Error(), "must be an SVG file") {
+				t.Errorf("PNG input should get a clear message, got %v", err)
 			}
 		})
 	}

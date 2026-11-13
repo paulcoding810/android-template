@@ -2,7 +2,6 @@ package cli
 
 import (
 	"bytes"
-	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -32,18 +31,18 @@ func TestRunCreatesProject(t *testing.T) {
 
 func TestRunRejectsBadArgs(t *testing.T) {
 	for _, tc := range []struct {
-		name         string
-		args         []string
-		wantReported bool
+		name      string
+		args      []string
+		usageHint bool // usage mistakes point to -h; invalid values explain themselves
 	}{
-		{"missing args", []string{"com.example.app"}, false},
+		{"missing args", []string{"com.example.app"}, true},
 		{"unknown flag", []string{"com.example.app", "App", "--kmp"}, true},
 		{"unknown template", []string{"com.example.app", "App", "--template", "flutter"}, false},
 		{"template without value", []string{"com.example.app", "App", "--template"}, true},
 		{"old template flag", []string{"com.example.app", "App", "--single"}, true},
 		{"invalid package", []string{"com.my-app", "App"}, false},
 		{"unsupported icon", []string{"com.example.app", "App", "--icon", "missing.svg"}, false},
-		{"icon without svg", []string{"icon"}, false},
+		{"icon without svg", []string{"icon"}, true},
 		{"icon unknown flag", []string{"icon", iconSVG, "--color", "#000"}, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -52,12 +51,16 @@ func TestRunRejectsBadArgs(t *testing.T) {
 			if args[0] != "icon" {
 				args = append([]string{"--no-git", "--output", out}, args...)
 			}
-			err := run(t, args...)
+			var stdout, stderr bytes.Buffer
+			err := Run(args, &stdout, &stderr)
 			if err == nil {
 				t.Fatal("expected error")
 			}
-			if errors.Is(err, ErrReported) != tc.wantReported {
-				t.Errorf("ErrReported = %v, want %v (err: %v)", !tc.wantReported, tc.wantReported, err)
+			if hint := strings.Contains(err.Error(), "gen-android -h"); hint != tc.usageHint {
+				t.Errorf("usage hint = %v, want %v (err: %v)", hint, tc.usageHint, err)
+			}
+			if stdout.Len()+stderr.Len() != 0 {
+				t.Errorf("errors must not print usage; got:\n%s%s", stdout.String(), stderr.String())
 			}
 			if entries, _ := os.ReadDir(out); len(entries) != 0 {
 				t.Errorf("output directory not empty after failure: %v", entries)
@@ -74,10 +77,53 @@ func TestUnknownTemplateListsAvailable(t *testing.T) {
 }
 
 func TestHelp(t *testing.T) {
-	for _, args := range [][]string{{"-h"}, {"icon", "-h"}} {
-		if err := run(t, args...); err != nil {
-			t.Errorf("%v: %v", args, err)
+	for _, tc := range []struct {
+		args []string
+		want []string
+	}{
+		{[]string{"-h"}, []string{"--scale", "no Kotlin keywords", "gradle.properties", "-app-name", "-min-sdk", "-here", "-quiet", "bundle ID"}},
+		{[]string{"icon", "-h"}, []string{"-dir", "-icon-bg", "SVG may not use text"}},
+	} {
+		var stdout, stderr bytes.Buffer
+		if err := Run(tc.args, &stdout, &stderr); err != nil {
+			t.Errorf("%v: %v", tc.args, err)
 		}
+		for _, want := range tc.want {
+			if !strings.Contains(stdout.String(), want) {
+				t.Errorf("%v help missing %q", tc.args, want)
+			}
+		}
+	}
+}
+
+func TestQuietAndNextSteps(t *testing.T) {
+	out := t.TempDir()
+	var stdout, stderr bytes.Buffer
+	if err := Run([]string{"com.example.app", "App", "-t", "kmm", "--no-git", "-o", out}, &stdout, &stderr); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"Next:", "cd " + filepath.Join(out, "App"), "iosApp.xcodeproj"} {
+		if !strings.Contains(stdout.String(), want) {
+			t.Errorf("output missing %q:\n%s", want, stdout.String())
+		}
+	}
+
+	stdout.Reset()
+	if err := Run([]string{"com.example.app", "Quiet", "-t", "empty", "--no-git", "-o", out, "--quiet"}, &stdout, &stderr); err != nil {
+		t.Fatal(err)
+	}
+	if stdout.Len() != 0 {
+		t.Errorf("--quiet printed:\n%s", stdout.String())
+	}
+}
+
+func TestIconScaleFlagOnCreate(t *testing.T) {
+	out := t.TempDir()
+	if err := run(t, "com.example.app", "App", "--no-git", "-o", out, "--icon", iconSVG, "--icon-scale", "0.4"); err != nil {
+		t.Fatal(err)
+	}
+	if err := run(t, "icon", iconSVG, "--dir", filepath.Join(out, "App"), "--icon-bg", "#000000", "--icon-scale", "0.5"); err != nil {
+		t.Errorf("icon subcommand should accept the create flag names: %v", err)
 	}
 }
 

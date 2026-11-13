@@ -113,8 +113,21 @@ func Project(opts Options, stdout, stderr io.Writer) error {
 		}
 	}
 
-	fmt.Fprintf(stdout, "\nDone! Project created at: %s\n", dir)
+	printNextSteps(stdout, dir, opts.Template)
 	return nil
+}
+
+func printNextSteps(w io.Writer, dir, template string) {
+	fmt.Fprintf(w, "\nDone! Project created at: %s\n\nNext:\n", dir)
+	if filepath.Clean(dir) != "." {
+		fmt.Fprintf(w, "  cd %s\n", dir)
+	}
+	if template == "kmm" {
+		fmt.Fprintln(w, "  ./gradlew :androidApp:assembleDebug   # or open the folder in Android Studio")
+		fmt.Fprintln(w, "  open iosApp/iosApp.xcodeproj           # iOS app in Xcode")
+		return
+	}
+	fmt.Fprintln(w, "  ./gradlew assembleDebug   # or open the folder in Android Studio")
 }
 
 func validate(opts Options) error {

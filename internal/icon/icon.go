@@ -101,11 +101,30 @@ func (o Options) parse() (*oksvg.SvgIcon, error) {
 	return icon, nil
 }
 
+var imageSignatures = []struct {
+	prefix string
+	format string
+}{
+	{"\x89PNG", "PNG"}, {"\xff\xd8\xff", "JPEG"}, {"GIF8", "GIF"}, {"%PDF", "PDF"},
+}
+
 func checkSupported(data []byte) error {
+	for _, sig := range imageSignatures {
+		if bytes.HasPrefix(data, []byte(sig.prefix)) {
+			return fmt.Errorf("this is a %s image; the icon must be an SVG file", sig.format)
+		}
+	}
+	if bytes.HasPrefix(data, []byte("RIFF")) && len(data) > 12 && string(data[8:12]) == "WEBP" {
+		return errors.New("this is a WebP image; the icon must be an SVG file")
+	}
+	rootSeen := false
 	dec := xml.NewDecoder(bytes.NewReader(data))
 	for {
 		tok, err := dec.Token()
 		if err == io.EOF {
+			if !rootSeen {
+				return errors.New("not an SVG file: no <svg> element")
+			}
 			return nil
 		}
 		if err != nil {
@@ -114,6 +133,12 @@ func checkSupported(data []byte) error {
 		se, ok := tok.(xml.StartElement)
 		if !ok {
 			continue
+		}
+		if !rootSeen {
+			rootSeen = true
+			if se.Name.Local != "svg" {
+				return fmt.Errorf("not an SVG file: root element is <%s>, expected <svg>", se.Name.Local)
+			}
 		}
 		// Editor metadata (sodipodi, inkscape, …) lives in other namespaces and is not drawn.
 		if se.Name.Space != "" && se.Name.Space != svgNamespace {
@@ -248,7 +273,7 @@ func findResDir(projectDir string) (string, error) {
 			return dir, nil
 		}
 	}
-	return "", fmt.Errorf("no app/src/main/res or androidApp/src/main/res in %q", projectDir)
+	return "", fmt.Errorf("no app/src/main/res or androidApp/src/main/res in %q; point --dir at the project", projectDir)
 }
 
 // removeOldIcons deletes launcher assets that would clash with the generated ones.

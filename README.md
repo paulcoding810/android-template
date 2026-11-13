@@ -34,7 +34,9 @@ The `gen-android` binary embeds the project templates at compile time via Go's `
 | `--here`           | Generate into the `-o` directory itself (default `.`), e.g. a freshly cloned repo, instead of a new `ProjectName/` folder |
 | `--no-git`         | Skip `git init` and the initial commit                   |
 | `--icon <file.svg>`| Generate the launcher icon from an SVG                   |
+| `--icon-scale <f>` | Fraction of the 108dp adaptive canvas the artwork fills (default 0.61, the safe zone) |
 | `--icon-bg <color>`| Launcher icon background, `#RGB` or `#RRGGBB` (default white) |
+| `--quiet`          | Print only warnings and errors (for CI) |
 | `--list`           | List available templates                                 |
 | `--version`        | Print the gen-android version                            |
 
@@ -58,7 +60,7 @@ gen-android com.acme.notes AcmeNotes --here
 - `values/ic_launcher_background.xml` with the background color
 - `iosApp/.../AppIcon.appiconset/app-icon-1024.png` (opaque) for KMM projects
 
-Existing `ic_launcher*` mipmaps and drawables are replaced. By default the artwork fills the adaptive safe zone (66 of 108dp); adjust with `icon --scale 0.5`. Text, images, masks, clip paths, filters and patterns aren't supported — convert them to paths first (Inkscape: *Object to Path*).
+Existing `ic_launcher*` mipmaps and drawables are replaced. By default the artwork fills the adaptive safe zone (66 of 108dp); adjust with `--icon-scale 0.5`. The `icon` subcommand takes `--dir`, `--bg`/`--icon-bg` and `--scale`/`--icon-scale`. Input must be SVG; PNG and other images are rejected with a clear message. Text, images, masks, clip paths, filters and patterns aren't supported — convert them to paths first (Inkscape: *Object to Path*).
 
 **Install:**
 
