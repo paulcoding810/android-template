@@ -22,6 +22,9 @@ const (
 	oldPkg       = "com.paulcoding.androidtemplate"
 	oldProjName  = "AndroidTemplate"
 	oldProjLower = "androidtemplate"
+	// Spellings used for display text and file names (window titles, database paths).
+	oldDisplayName = "Android Template"
+	oldProjKebab   = "android-template"
 )
 
 // Local build output and IDE state that must never be copied into a new project.
@@ -136,6 +139,8 @@ func extract(outDir string, opts Options) error {
 		oldPkg, opts.Package,
 		oldProjName, opts.Project,
 		oldProjLower, strings.ToLower(opts.Project),
+		oldDisplayName, opts.Project,
+		oldProjKebab, strings.ToLower(opts.Project),
 	)
 
 	return fs.WalkDir(templates.FS, opts.Template, func(p string, d fs.DirEntry, err error) error {

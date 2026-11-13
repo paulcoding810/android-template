@@ -53,8 +53,10 @@ func TestProjectTemplates(t *testing.T) {
 					return err
 				}
 				lower := strings.ToLower(string(data))
-				if strings.Contains(lower, "paulcoding") || strings.Contains(lower, "androidtemplate") {
-					t.Errorf("template identifier left in %s", rel)
+				for _, old := range []string{"paulcoding", "androidtemplate", "android template", "android-template", "android_template"} {
+					if strings.Contains(lower, old) {
+						t.Errorf("template identifier %q left in %s", old, rel)
+					}
 				}
 				return nil
 			})
