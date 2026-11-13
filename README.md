@@ -31,6 +31,7 @@ The `gen-android` binary embeds the project templates at compile time via Go's `
 | `--app-name <name>` | Name shown under the app icon, spaces allowed (default: ProjectName). Sets Android `app_name`, iOS `CFBundleDisplayName` and the desktop window title |
 | `--min-sdk <n>`    | Android minSdk, 23–36 (default per template, shown by `--list`) |
 | `--team-id <id>`   | Apple team ID written to the iOS config (`kmm` template only)   |
+| `--here`           | Generate into the `-o` directory itself (default `.`), e.g. a freshly cloned repo, instead of a new `ProjectName/` folder |
 | `--no-git`         | Skip `git init` and the initial commit                   |
 | `--icon <file.svg>`| Generate the launcher icon from an SVG                   |
 | `--icon-bg <color>`| Launcher icon background, `#RGB` or `#RRGGBB` (default white) |
@@ -38,6 +39,15 @@ The `gen-android` binary embeds the project templates at compile time via Go's `
 | `--version`        | Print the gen-android version                            |
 
 Flags may appear before or after the positional arguments. The package name must have at least two lowercase segments and no Kotlin keywords; the project name must be letters and digits only.
+
+**Existing repositories:**
+
+```bash
+git clone git@github.com:acme/acme-notes.git && cd acme-notes
+gen-android com.acme.notes AcmeNotes --here
+```
+
+`--here` accepts an existing directory as long as it has no Gradle project yet. It never overwrites your files: your `README.md` is kept, the template's `.gitignore` entries are appended to yours, and any other clash stops the run before anything is written. If the target is already inside a git repository (with or without `--here`), no nested repo is created and the files are left for you to commit. A failed run removes only what it created.
 
 **Launcher icon:**
 

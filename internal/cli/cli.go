@@ -38,6 +38,7 @@ func runCreate(args []string, stdout, stderr io.Writer) error {
 	teamID := fset.String("team-id", "", "Apple team ID for the iOS app (kmm only)")
 	appName := fset.String("app-name", "", "name shown under the app icon, may contain spaces (default: ProjectName)")
 	minSDK := fset.Int("min-sdk", 0, "Android minSdk (default: the template's, see --list)")
+	here := fset.Bool("here", false, "generate into the --output directory itself (e.g. a cloned repo) instead of a new ProjectName folder")
 	noGit := fset.Bool("no-git", false, "skip git init and the initial commit")
 	iconPath := fset.String("icon", "", "SVG file for the launcher icon")
 	iconBg := fset.String("icon-bg", "#FFFFFF", "launcher icon background color")
@@ -80,6 +81,7 @@ func runCreate(args []string, stdout, stderr io.Writer) error {
 		OutDir:   outDir,
 		TeamID:   *teamID,
 		MinSDK:   *minSDK,
+		Here:     *here,
 		NoGit:    *noGit,
 	}
 	if *iconPath != "" {
