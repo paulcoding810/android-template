@@ -1,4 +1,5 @@
 [versions]
+android-minSdk = "25"
 agp = "9.0.1"
 kotlin = "2.4.10"
 coreKtx = "1.18.0"

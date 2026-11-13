@@ -36,6 +36,7 @@ func runCreate(args []string, stdout, stderr io.Writer) error {
 	fset.StringVar(&outDir, "output", ".", "parent directory for the new project")
 	fset.StringVar(&outDir, "o", ".", "shorthand for --output")
 	teamID := fset.String("team-id", "", "Apple team ID for the iOS app (kmm only)")
+	minSDK := fset.Int("min-sdk", 0, "Android minSdk (default: the template's, see --list)")
 	noGit := fset.Bool("no-git", false, "skip git init and the initial commit")
 	iconPath := fset.String("icon", "", "SVG file for the launcher icon")
 	iconBg := fset.String("icon-bg", "#FFFFFF", "launcher icon background color")
@@ -76,6 +77,7 @@ func runCreate(args []string, stdout, stderr io.Writer) error {
 		Template: template,
 		OutDir:   outDir,
 		TeamID:   *teamID,
+		MinSDK:   *minSDK,
 		NoGit:    *noGit,
 	}
 	if *iconPath != "" {
@@ -143,6 +145,6 @@ func printTemplates(w io.Writer) {
 		if t.Name == templates.Default {
 			marker = "(default)"
 		}
-		fmt.Fprintf(w, "%-7s %-10s %s\n", t.Name, marker, t.Description)
+		fmt.Fprintf(w, "%-7s %-10s minSdk %-3s %s\n", t.Name, marker, t.MinSDK(), t.Description)
 	}
 }

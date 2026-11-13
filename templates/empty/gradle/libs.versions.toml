@@ -1,4 +1,5 @@
 [versions]
+android-minSdk = "24"
 androidGradlePlugin = "9.0.1"
 androidxCore = "1.18.0"
 androidxLifecycle = "2.10.0"

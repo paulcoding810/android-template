@@ -27,6 +27,7 @@ The `gen-android` binary embeds the project templates at compile time via Go's `
 | ------------------ | -------------------------------------------------------- |
 | `-t`, `--template <name>` | Template to use: `main` (default), `single`, `empty`, `kmm` |
 | `-o`, `--output <dir>` | Parent directory for the new project (default `.`)       |
+| `--min-sdk <n>`    | Android minSdk, 23–36 (default per template, shown by `--list`) |
 | `--team-id <id>`   | Apple team ID written to the iOS config (`kmm` template only)   |
 | `--no-git`         | Skip `git init` and the initial commit                   |
 | `--icon <file.svg>`| Generate the launcher icon from an SVG                   |
@@ -85,7 +86,7 @@ templates/              embedded project templates (embed.go lists them)
 scripts/                maintenance scripts (upstream-diff)
 ```
 
-To add a template, put the project under `templates/<name>/` (using package `com.paulcoding.androidtemplate` and name `AndroidTemplate`), and add it to the `go:embed` line and `All` in `templates/embed.go`. `--template` and `--list` pick it up from `All`.
+To add a template, put the project under `templates/<name>/` (using package `com.paulcoding.androidtemplate` and name `AndroidTemplate`), define minSdk once as `android-minSdk` in `gradle/libs.versions.toml` (modules read `libs.versions.android.minSdk`), and add it to the `go:embed` line and `All` in `templates/embed.go`. `--template` and `--list` pick it up from `All`.
 
 **Develop:**
 
@@ -104,11 +105,11 @@ Generates a fresh project with the [Android CLI](https://developer.android.com/t
 
 ### What's inside
 
-| `--template`        | Contents                                              |
-| ------------------- | ----------------------------------------------------- |
-| `main` (default)    | Multi-module Android app: `app`, `core/*`, `feature/*` |
-| `single`            | Single-module Android app: `app/`                     |
-| `empty`             | Minimal Compose app: one screen, no Ktor/Koin/Room/navigation. Build config follows `android create empty-activity` |
-| `kmm`               | Kotlin Multiplatform: `shared`, `androidApp`, `iosApp`, `jvmApp` |
+| `--template`        | minSdk | Contents                                              |
+| ------------------- | ------ | ----------------------------------------------------- |
+| `main` (default)    | 25     | Multi-module Android app: `app`, `core/*`, `feature/*` |
+| `single`            | 25     | Single-module Android app: `app/`                     |
+| `empty`             | 24     | Minimal Compose app: one screen, no Ktor/Koin/Room/navigation. Build config follows `android create empty-activity` |
+| `kmm`               | 29     | Kotlin Multiplatform: `shared`, `androidApp`, `iosApp`, `jvmApp` |
 
 All templates use Kotlin, Jetpack Compose (Compose Multiplatform for KMM), Gradle Kotlin DSL and proguard rules.

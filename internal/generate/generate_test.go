@@ -100,6 +100,40 @@ func TestProjectTemplates(t *testing.T) {
 	}
 }
 
+func TestProjectMinSDK(t *testing.T) {
+	for _, template := range []string{"main", "single", "empty", "kmm"} {
+		t.Run(template, func(t *testing.T) {
+			opts := newOptions(t, template)
+			opts.MinSDK = 26
+			var stdout, stderr bytes.Buffer
+			if err := Project(opts, &stdout, &stderr); err != nil {
+				t.Fatal(err)
+			}
+			root := filepath.Join(opts.OutDir, opts.Project)
+			catalog, err := os.ReadFile(filepath.Join(root, "gradle", "libs.versions.toml"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(string(catalog), `android-minSdk = "26"`) {
+				t.Error("catalog minSdk not updated")
+			}
+			// Every module must read minSdk from the catalog, or --min-sdk would miss it.
+			filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+				if err != nil || d.IsDir() || !strings.HasSuffix(p, ".gradle.kts") {
+					return err
+				}
+				data, _ := os.ReadFile(p)
+				for _, line := range strings.Split(string(data), "\n") {
+					if strings.Contains(line, "minSdk =") && !strings.Contains(line, "libs.versions.android.minSdk") {
+						t.Errorf("%s hardcodes minSdk: %s", p, strings.TrimSpace(line))
+					}
+				}
+				return nil
+			})
+		})
+	}
+}
+
 func TestProjectRejectsBadOptions(t *testing.T) {
 	for _, tc := range []struct {
 		name   string
@@ -113,6 +147,8 @@ func TestProjectRejectsBadOptions(t *testing.T) {
 		{"space in project", func(o *Options) { o.Project = "My App" }},
 		{"team id without kmm", func(o *Options) { o.TeamID = "ABCDE12345" }},
 		{"bad team id", func(o *Options) { o.Template = "kmm"; o.TeamID = "abc" }},
+		{"min sdk too low", func(o *Options) { o.MinSDK = 22 }},
+		{"min sdk too high", func(o *Options) { o.MinSDK = 99 }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			opts := newOptions(t, "main")

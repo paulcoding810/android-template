@@ -39,6 +39,12 @@ var skippedNames = map[string]bool{
 	".DS_Store":        true,
 }
 
+// Bounds for --min-sdk; Gradle reports libraries that need a higher value.
+const (
+	minSupportedSDK = 23
+	maxSupportedSDK = 36
+)
+
 var (
 	pkgSegment  = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 	projNameRe  = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9]*$`)
@@ -58,6 +64,7 @@ type Options struct {
 	Template string
 	OutDir   string
 	TeamID   string
+	MinSDK   int // 0 keeps the template default
 	NoGit    bool
 	Icon     *icon.Options
 }
@@ -104,6 +111,9 @@ func validate(opts Options) error {
 	}
 	if !projNameRe.MatchString(opts.Project) {
 		return fmt.Errorf("invalid project name %q: use letters and digits only, starting with a letter", opts.Project)
+	}
+	if opts.MinSDK != 0 && (opts.MinSDK < minSupportedSDK || opts.MinSDK > maxSupportedSDK) {
+		return fmt.Errorf("invalid minSdk %d: must be between %d and %d", opts.MinSDK, minSupportedSDK, maxSupportedSDK)
 	}
 	if opts.TeamID != "" {
 		if opts.Template != "kmm" {
@@ -173,6 +183,12 @@ func extract(outDir string, opts Options) error {
 		content := replacer.Replace(string(data))
 		if rel == "gradle.properties" {
 			content = generatedBy(opts.Template) + content
+		}
+		if rel == templates.Catalog && opts.MinSDK != 0 {
+			if !templates.MinSDKPattern.MatchString(content) {
+				return fmt.Errorf("template %q has no android-minSdk in %s", opts.Template, templates.Catalog)
+			}
+			content = templates.MinSDKPattern.ReplaceAllString(content, fmt.Sprintf(`android-minSdk = "%d"`, opts.MinSDK))
 		}
 		if opts.TeamID != "" && path.Base(p) == "Config.xcconfig" {
 			content = strings.Replace(content, "TEAM_ID=\n", "TEAM_ID="+opts.TeamID+"\n", 1)

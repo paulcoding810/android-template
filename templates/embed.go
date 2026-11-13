@@ -3,6 +3,7 @@ package templates
 
 import (
 	"embed"
+	"regexp"
 	"strings"
 )
 
@@ -23,6 +24,24 @@ var All = []Template{
 	{"single", "single-module Android app"},
 	{"empty", "minimal Compose app, no extra libraries"},
 	{"kmm", "Kotlin Multiplatform app (Android, iOS, JVM)"},
+}
+
+// Catalog is each template's version catalog; its android-minSdk entry is the single source of minSdk.
+const Catalog = "gradle/libs.versions.toml"
+
+var MinSDKPattern = regexp.MustCompile(`(?m)^android-minSdk = "(\d+)"`)
+
+// MinSDK returns the template's default minSdk, or "" if it can't be read.
+func (t Template) MinSDK() string {
+	data, err := FS.ReadFile(t.Name + "/" + Catalog)
+	if err != nil {
+		return ""
+	}
+	m := MinSDKPattern.FindSubmatch(data)
+	if m == nil {
+		return ""
+	}
+	return string(m[1])
 }
 
 func Exists(name string) bool {

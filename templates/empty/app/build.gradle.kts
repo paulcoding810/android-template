@@ -8,7 +8,7 @@ android {
   compileSdk = 37
   defaultConfig {
     applicationId = "com.paulcoding.androidtemplate"
-    minSdk = 24
+    minSdk = libs.versions.android.minSdk.get().toInt()
     targetSdk = 37
     versionCode = 1
     versionName = "1.0"

@@ -12,7 +12,7 @@ android {
 
     defaultConfig {
         applicationId = "com.paulcoding.androidtemplate"
-        minSdk = 25
+        minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
